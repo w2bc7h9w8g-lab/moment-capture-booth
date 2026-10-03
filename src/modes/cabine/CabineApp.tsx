@@ -11,8 +11,14 @@ export function CabineApp({ service = localSessionService }: { service?: Session
   const [step, setStep] = useState<Step>("welcome");
   const [session, setSession] = useState<BoothSession | null>(null);
   const [startError, setStartError] = useState("");
+  const [finishError, setFinishError] = useState("");
 
-  const reset = useCallback(() => { setSession(null); setStep("welcome"); }, []);
+  const reset = useCallback(() => {
+    setSession(null);
+    setStartError("");
+    setFinishError("");
+    setStep("welcome");
+  }, []);
 
   const startSession = async (phone: string) => {
     setStartError("");
@@ -24,15 +30,24 @@ export function CabineApp({ service = localSessionService }: { service?: Session
       setStartError(error instanceof Error ? error.message : "Não foi possível iniciar a sessão. Tente novamente.");
     }
   };
+
   const usePhoto = async (dataUrl: string) => {
     if (!session) return;
-    setSession(await service.addPhoto(session, dataUrl));
+    const nextSession = await service.addPhoto(session, dataUrl);
+    setSession(nextSession);
     setStep("gallery");
   };
+
   const finish = async () => {
     if (!session) return;
-    setSession(await service.finalizeSession(session));
-    setStep("summary");
+    setFinishError("");
+    try {
+      const nextSession = await service.finalizeSession(session);
+      setSession(nextSession);
+      setStep("summary");
+    } catch (error) {
+      setFinishError(error instanceof Error ? error.message : "Não foi possível finalizar a sessão. Tente novamente.");
+    }
   };
 
   const photos = session?.photos ?? [];
@@ -53,7 +68,10 @@ export function CabineApp({ service = localSessionService }: { service?: Session
         />
       )}
       {step === "gallery" && (
-        <GalleryScreen photos={photos} onMore={() => setStep("camera")} onFinish={finish} />
+        <>
+          <GalleryScreen photos={photos} onMore={() => { setFinishError(""); setStep("camera"); }} onFinish={finish} />
+          {finishError && <p className="mt-4 max-w-2xl text-center text-destructive">{finishError}</p>}
+        </>
       )}
       {step === "summary" && <SummaryScreen photos={photos} onDone={reset} />}
     </ScreenShell>
