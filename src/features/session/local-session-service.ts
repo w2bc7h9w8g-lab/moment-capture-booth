@@ -6,7 +6,6 @@ const uid = () =>
 
 const dataUrlToBlob = async (dataUrl: string) => (await fetch(dataUrl)).blob();
 const normalizePhone = (phone: string) => phone.replace(/\D/g, "");
-type SessionRow = { id: string; phone: string; created_at: string };
 
 export const localSessionService: SessionService = {
   async createSession(phone) {
@@ -21,22 +20,42 @@ export const localSessionService: SessionService = {
     });
     return { id, phone: normalizedPhone, photos: [], status: "open", createdAt: Date.now() };
   },
+
   async addPhoto(session, dataUrl) {
     const photoNumber = session.photos.length + 1;
     const path = `${session.id}/photo-${photoNumber}.jpg`;
+    const photoId = uid();
+
     await supabaseRest(`/storage/v1/object/photo-booth/${path}`, {
-      method: "POST", headers: { "Content-Type": "image/jpeg", "x-upsert": "true" }, body: await dataUrlToBlob(dataUrl),
+      method: "POST",
+      headers: { "Content-Type": "image/jpeg", "x-upsert": "false" },
+      body: await dataUrlToBlob(dataUrl),
     });
-    const response = await supabaseRest("/rest/v1/session_photos?select=id,created_at&limit=1", {
-      method: "POST", headers: { "Content-Type": "application/json", Prefer: "return=representation" },
-      body: JSON.stringify({ session_id: session.id, storage_path: path, photo_number: photoNumber }),
+
+    // Do not request the inserted row back: anon intentionally has no SELECT
+    // permission on session_photos. The ID is generated client-side instead.
+    await supabaseRest("/rest/v1/session_photos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({
+        id: photoId,
+        session_id: session.id,
+        storage_path: path,
+        photo_number: photoNumber,
+      }),
     });
-    const row = (await response.json() as Array<{ id: string; created_at: string }>)[0];
-    return { ...session, photos: [...session.photos, { id: row?.id ?? uid(), dataUrl, createdAt: row ? Date.parse(row.created_at) : Date.now() }] };
+
+    return {
+      ...session,
+      photos: [...session.photos, { id: photoId, dataUrl, createdAt: Date.now() }],
+    };
   },
+
   async finalizeSession(session: BoothSession) {
     await supabaseRest(`/rest/v1/sessions?id=eq.${session.id}&status=eq.active`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "awaiting_print" }),
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "awaiting_print" }),
     });
     return { ...session, status: "finalized" };
   },
