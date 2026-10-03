@@ -24,8 +24,6 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
 
   useEffect(() => { void start(); return stop; }, [start, stop]);
 
-  if (error) return <CameraErrorPanel error={error} onRetry={start} onCancel={onCancel} />;
-
   const take = () => {
     const img = capture();
     if (img) {
@@ -51,6 +49,8 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count]);
+
+  if (error) return <CameraErrorPanel error={error} onRetry={start} onCancel={onCancel} />;
 
   const counting = count !== null;
 
