@@ -72,23 +72,6 @@ export function PhoneScreen({ onSubmit, onCancel }: { onSubmit: (p: string) => v
   );
 }
 
-export function CountdownScreen({ onDone }: { onDone: () => void }) {
-  const [n, setN] = useState(3);
-  useEffect(() => {
-    if (n === 0) { onDone(); return; }
-    const t = setTimeout(() => setN((x) => x - 1), 1000);
-    return () => clearTimeout(t);
-  }, [n, onDone]);
-  return (
-    <div className="text-center">
-      <h2 className="font-display text-6xl text-cream">Prepare-se!</h2>
-      <div key={n} className="animate-pop mt-8 font-display text-[16rem] leading-none font-bold text-primary">
-        {n > 0 ? n : "✦"}
-      </div>
-    </div>
-  );
-}
-
 const ERRORS: Record<CameraError, { title: string; steps: string[] }> = {
   insecure: { title: "Conexão não segura", steps: ["A câmera só funciona em HTTPS ou localhost.", "Abra a cabine por um endereço seguro."] },
   unsupported: { title: "Navegador sem suporte à câmera", steps: ["Use uma versão recente do Chrome, Edge ou Safari."] },
