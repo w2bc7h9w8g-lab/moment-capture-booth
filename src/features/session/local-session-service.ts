@@ -10,12 +10,16 @@ type SessionRow = { id: string; phone: string; created_at: string };
 
 export const localSessionService: SessionService = {
   async createSession(phone) {
-    const response = await supabaseRest("/rest/v1/sessions?select=id,phone,created_at&limit=1", {
-      method: "POST", headers: { "Content-Type": "application/json", Prefer: "return=representation" },
-      body: JSON.stringify({ phone: normalizePhone(phone), status: "active" }),
+    // Generate the session UUID in the browser so the kiosk does not need
+    // SELECT permission just to receive the inserted row back from Supabase.
+    const id = uid();
+    const normalizedPhone = normalizePhone(phone);
+    await supabaseRest("/rest/v1/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ id, phone: normalizedPhone, status: "active" }),
     });
-    const row = (await response.json() as SessionRow[])[0];
-    return { id: row.id, phone: row.phone, photos: [], status: "open", createdAt: Date.parse(row.created_at) };
+    return { id, phone: normalizedPhone, photos: [], status: "open", createdAt: Date.now() };
   },
   async addPhoto(session, dataUrl) {
     const photoNumber = session.photos.length + 1;
