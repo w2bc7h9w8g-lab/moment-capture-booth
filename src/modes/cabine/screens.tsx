@@ -53,11 +53,8 @@ export function PhoneScreen({ onSubmit, onCancel }: { onSubmit: (p: string) => v
         <div className="mt-6 flex gap-4">
           <KioskButton variant="ghost" onClick={onCancel}>Voltar</KioskButton>
           <KioskButton
-            disabled={digits.length < 10}
-            onClick={() => {
-              setTouched(true);
-              if (valid) onSubmit(digits);
-            }}
+            disabled={!valid}
+            onClick={() => onSubmit(digits)}
             className="flex-1"
           >
             Continuar
