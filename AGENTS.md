@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Architecture
+- App modes live in `src/modes/<mode>` (cabine now, loja later) — keeps kiosk and store flows isolated.
+- Session persistence goes through the `SessionService` interface in `src/features/session` — swap the local impl for a backend without touching UI.
