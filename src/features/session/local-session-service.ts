@@ -26,12 +26,10 @@ export const localSessionService: SessionService = {
     const path = `${session.id}/photo-${photoNumber}.jpg`;
     const photoId = uid();
 
-    // Keep the browser request to Storage standard: custom headers can trigger
-    // a CORS preflight and make the kiosk upload fail before the request reaches
-    // Supabase's Storage policy.
+    // Standard browser request: no custom kiosk headers or upsert flag.
     await supabaseRest(`/storage/v1/object/photo-booth/${path}`, {
       method: "POST",
-      headers: { "Content-Type": "image/jpeg", "x-upsert": "false" },
+      headers: { "Content-Type": "image/jpeg" },
       body: await dataUrlToBlob(dataUrl),
     });
 
