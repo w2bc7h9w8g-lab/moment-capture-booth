@@ -54,9 +54,13 @@ export const localSessionService: SessionService = {
   async finalizeSession(session: BoothSession) {
     await supabaseRest(`/rest/v1/sessions?id=eq.${session.id}&status=eq.active`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-session-id": session.id,
+        Prefer: "return=minimal",
+      },
       body: JSON.stringify({ status: "awaiting_print" }),
-    });
+    }, undefined);
     return { ...session, status: "finalized" };
   },
 };
