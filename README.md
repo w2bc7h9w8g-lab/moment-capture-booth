@@ -1,29 +1,21 @@
-# Welcome to your Lovable project
+# Bohemia Photo Booth
 
-This project was built with [Lovable](https://lovable.dev).
+MVP da cabine de fotos touchscreen (modo CABINE).
 
-## Build with Lovable
+## Rodar localmente
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+```bash
+bun install
+bun run dev
 ```
 
-## Built with
+Abra http://localhost:8080 em tela cheia (F11).
 
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+> A câmera (getUserMedia) só funciona em **localhost** ou **HTTPS**. Em outros endereços o navegador bloqueia o acesso.
+
+## Estrutura
+
+- `src/modes/cabine` — fluxo da cabine (futuro: `src/modes/loja`)
+- `src/features/camera` — hook da webcam
+- `src/features/session` — tipos e `SessionService` (implementação local em memória; trocar por Supabase depois)
+- `src/components/kiosk` — componentes touch reutilizáveis
