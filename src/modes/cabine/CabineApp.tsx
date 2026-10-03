@@ -3,7 +3,7 @@ import { ScreenShell } from "@/components/kiosk/ScreenShell";
 import { localSessionService } from "@/features/session/local-session-service";
 import { MAX_PHOTOS, type BoothSession, type SessionService } from "@/features/session/types";
 import { CameraStage } from "./CameraStage";
-import { CameraStage, CountdownScreen, GalleryScreen, PhoneScreen, SummaryScreen, WelcomeScreen } from "./screens";
+import { CameraStage, GalleryScreen, PhoneScreen, SummaryScreen, WelcomeScreen } from "./screens";
 
 type Step = "welcome" | "phone" | "camera" | "gallery" | "summary";
 
@@ -43,7 +43,7 @@ export function CabineApp({ service = localSessionService }: { service?: Session
         />
       )}
       {step === "gallery" && (
-        <GalleryScreen photos={photos} onMore={() => setStep("countdown")} onFinish={finish} />
+        <GalleryScreen photos={photos} onMore={() => setStep("camera")} onFinish={finish} />
       )}
       {step === "summary" && <SummaryScreen photos={photos} onDone={reset} />}
     </ScreenShell>
