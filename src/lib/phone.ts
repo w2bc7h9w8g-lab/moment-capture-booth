@@ -8,10 +8,11 @@ export function formatBrPhone(digits: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-/** Simple validation: 11 digits, valid DDD range, mobile starts with 9. */
+/** Validates Brazilian phone numbers accepted by the booth: 10 digits (landline) or 11 digits (mobile), with a valid DDD. */
 export function isValidBrMobile(digits: string) {
   const d = onlyDigits(digits);
-  if (d.length !== 11) return false;
+  if (d.length !== 10 && d.length !== 11) return false;
   const ddd = Number(d.slice(0, 2));
-  return ddd >= 11 && ddd <= 99 && d[2] === "9";
+  if (ddd < 11 || ddd > 99) return false;
+  return d.length === 10 || d[2] === "9";
 }
