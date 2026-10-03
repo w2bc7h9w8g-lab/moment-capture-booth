@@ -3,20 +3,19 @@ import { ScreenShell } from "@/components/kiosk/ScreenShell";
 import { localSessionService } from "@/features/session/local-session-service";
 import { MAX_PHOTOS, type BoothSession, type SessionService } from "@/features/session/types";
 import { CameraStage } from "./CameraStage";
-import { CountdownScreen, GalleryScreen, PhoneScreen, SummaryScreen, WelcomeScreen } from "./screens";
+import { GalleryScreen, PhoneScreen, SummaryScreen, WelcomeScreen } from "./screens";
 
-type Step = "welcome" | "phone" | "countdown" | "camera" | "gallery" | "summary";
+type Step = "welcome" | "phone" | "camera" | "gallery" | "summary";
 
 export function CabineApp({ service = localSessionService }: { service?: SessionService }) {
   const [step, setStep] = useState<Step>("welcome");
   const [session, setSession] = useState<BoothSession | null>(null);
 
   const reset = useCallback(() => { setSession(null); setStep("welcome"); }, []);
-  const toCamera = useCallback(() => setStep("camera"), []);
 
   const startSession = async (phone: string) => {
     setSession(await service.createSession(phone));
-    setStep("countdown");
+    setStep("camera");
   };
   const usePhoto = async (dataUrl: string) => {
     if (!session) return;
@@ -35,7 +34,6 @@ export function CabineApp({ service = localSessionService }: { service?: Session
     <ScreenShell>
       {step === "welcome" && <WelcomeScreen onStart={() => setStep("phone")} />}
       {step === "phone" && <PhoneScreen onSubmit={startSession} onCancel={reset} />}
-      {step === "countdown" && <CountdownScreen onDone={toCamera} />}
       {step === "camera" && (
         <CameraStage
           photoNumber={photos.length + 1}
@@ -45,7 +43,7 @@ export function CabineApp({ service = localSessionService }: { service?: Session
         />
       )}
       {step === "gallery" && (
-        <GalleryScreen photos={photos} onMore={() => setStep("countdown")} onFinish={finish} />
+        <GalleryScreen photos={photos} onMore={() => setStep("camera")} onFinish={finish} />
       )}
       {step === "summary" && <SummaryScreen photos={photos} onDone={reset} />}
     </ScreenShell>
