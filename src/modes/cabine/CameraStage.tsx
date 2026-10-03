@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Camera, RotateCcw, X, Check } from "lucide-react";
 import { KioskButton } from "@/components/kiosk/KioskButton";
 import { useCamera } from "@/features/camera/use-camera";
@@ -7,7 +7,7 @@ import { CameraErrorPanel } from "./screens";
 interface Props {
   photoNumber: number;
   maxPhotos: number;
-  onUse: (dataUrl: string) => void;
+  onUse: (dataUrl: string) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -19,6 +19,8 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
   const [shot, setShot] = useState<string | null>(null);
   const [flash, setFlash] = useState(0);
   const [count, setCount] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => { void start(); return stop; }, [start, stop]);
 
@@ -26,11 +28,15 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
 
   const take = () => {
     const img = capture();
-    if (img) { setShot(img); setFlash((f) => f + 1); }
+    if (img) {
+      setSaveError("");
+      setShot(img);
+      setFlash((f) => f + 1);
+    }
   };
 
   const beginCountdown = () => {
-    if (count !== null) return; // no double countdowns
+    if (count !== null) return;
     setCount(COUNTDOWN_START);
   };
 
@@ -47,6 +53,19 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
   }, [count]);
 
   const counting = count !== null;
+
+  const useCurrentPhoto = async () => {
+    if (!shot || saving) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await onUse(shot);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Não foi possível salvar a foto. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="flex w-full max-w-6xl flex-col items-center">
@@ -72,11 +91,16 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
         )}
         {flash > 0 && <div key={flash} className="animate-flash pointer-events-none absolute inset-0 bg-cream" />}
       </div>
+      {saveError && <p className="mt-4 max-w-3xl text-center text-destructive">{saveError}</p>}
       <div className="mt-6 flex gap-6">
         {shot ? (
           <>
-            <KioskButton variant="outline" onClick={() => setShot(null)}><RotateCcw className="h-6 w-6" />Tirar novamente</KioskButton>
-            <KioskButton onClick={() => onUse(shot)}><Check className="h-6 w-6" />Usar foto</KioskButton>
+            <KioskButton variant="outline" disabled={saving} onClick={() => { setSaveError(""); setShot(null); }}>
+              <RotateCcw className="h-6 w-6" />Tirar novamente
+            </KioskButton>
+            <KioskButton disabled={saving} onClick={useCurrentPhoto}>
+              <Check className="h-6 w-6" />{saving ? "Salvando…" : "Usar foto"}
+            </KioskButton>
           </>
         ) : (
           <>
