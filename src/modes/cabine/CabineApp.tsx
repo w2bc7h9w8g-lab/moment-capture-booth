@@ -10,12 +10,19 @@ type Step = "welcome" | "phone" | "camera" | "gallery" | "summary";
 export function CabineApp({ service = localSessionService }: { service?: SessionService }) {
   const [step, setStep] = useState<Step>("welcome");
   const [session, setSession] = useState<BoothSession | null>(null);
+  const [startError, setStartError] = useState("");
 
   const reset = useCallback(() => { setSession(null); setStep("welcome"); }, []);
 
   const startSession = async (phone: string) => {
-    setSession(await service.createSession(phone));
-    setStep("camera");
+    setStartError("");
+    try {
+      const nextSession = await service.createSession(phone);
+      setSession(nextSession);
+      setStep("camera");
+    } catch (error) {
+      setStartError(error instanceof Error ? error.message : "Não foi possível iniciar a sessão. Tente novamente.");
+    }
   };
   const usePhoto = async (dataUrl: string) => {
     if (!session) return;
@@ -34,6 +41,9 @@ export function CabineApp({ service = localSessionService }: { service?: Session
     <ScreenShell>
       {step === "welcome" && <WelcomeScreen onStart={() => setStep("phone")} />}
       {step === "phone" && <PhoneScreen onSubmit={startSession} onCancel={reset} />}
+      {step === "phone" && startError && (
+        <p className="mt-4 max-w-2xl text-center text-destructive">{startError}</p>
+      )}
       {step === "camera" && (
         <CameraStage
           photoNumber={photos.length + 1}
