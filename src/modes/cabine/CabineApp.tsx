@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { ScreenShell } from "@/components/kiosk/ScreenShell";
 import { localSessionService } from "@/features/session/local-session-service";
 import { MAX_PHOTOS, type BoothSession, type SessionService } from "@/features/session/types";
+import { CameraStage } from "./CameraStage";
 import { GalleryScreen, PhoneScreen, SummaryScreen, WelcomeScreen } from "./screens";
 
 type Step = "welcome" | "phone" | "camera" | "gallery" | "summary";
