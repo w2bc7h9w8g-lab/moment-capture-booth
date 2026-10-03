@@ -64,7 +64,8 @@ export const localSessionService: SessionService = {
         "x-session-id": session.id,
         Prefer: "return=minimal",
       },
-    }, undefined);
+      body: JSON.stringify({ status: "awaiting_print" }),
+    });
     return { ...session, status: "finalized" };
   },
 };
