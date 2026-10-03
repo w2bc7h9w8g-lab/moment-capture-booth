@@ -25,10 +25,11 @@ export const localSessionService: SessionService = {
     const photoNumber = session.photos.length + 1;
     const path = `${session.id}/photo-${photoNumber}.jpg`;
     const photoId = uid();
+    const sessionHeader = { "x-session-id": session.id };
 
     await supabaseRest(`/storage/v1/object/photo-booth/${path}`, {
       method: "POST",
-      headers: { "Content-Type": "image/jpeg", "x-upsert": "false" },
+      headers: { "Content-Type": "image/jpeg", "x-upsert": "false", ...sessionHeader },
       body: await dataUrlToBlob(dataUrl),
     });
 
@@ -36,7 +37,11 @@ export const localSessionService: SessionService = {
     // permission on session_photos. The ID is generated client-side instead.
     await supabaseRest("/rest/v1/session_photos", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+      headers: {
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+        ...sessionHeader,
+      },
       body: JSON.stringify({
         id: photoId,
         session_id: session.id,
@@ -59,7 +64,6 @@ export const localSessionService: SessionService = {
         "x-session-id": session.id,
         Prefer: "return=minimal",
       },
-      body: JSON.stringify({ status: "awaiting_print" }),
     }, undefined);
     return { ...session, status: "finalized" };
   },
