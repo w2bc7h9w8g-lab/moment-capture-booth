@@ -9,15 +9,15 @@ const normalizePhone = (phone: string) => phone.replace(/\D/g, "");
 
 export const localSessionService: SessionService = {
   async createSession(phone) {
-    // Generate the session UUID in the browser so the kiosk does not need
-    // SELECT permission just to receive the inserted row back from Supabase.
     const id = uid();
     const normalizedPhone = normalizePhone(phone);
+
     await supabaseRest("/rest/v1/sessions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
       body: JSON.stringify({ id, phone: normalizedPhone, status: "active" }),
     });
+
     return { id, phone: normalizedPhone, photos: [], status: "open", createdAt: Date.now() };
   },
 
@@ -25,22 +25,23 @@ export const localSessionService: SessionService = {
     const photoNumber = session.photos.length + 1;
     const path = `${session.id}/photo-${photoNumber}.jpg`;
     const photoId = uid();
-    const sessionHeader = { "x-session-id": session.id };
 
+    // Keep the browser request to Storage standard: custom headers can trigger
+    // a CORS preflight and make the kiosk upload fail before the request reaches
+    // Supabase's Storage policy.
     await supabaseRest(`/storage/v1/object/photo-booth/${path}`, {
       method: "POST",
-      headers: { "Content-Type": "image/jpeg", "x-upsert": "false", ...sessionHeader },
+      headers: { "Content-Type": "image/jpeg", "x-upsert": "false" },
       body: await dataUrlToBlob(dataUrl),
     });
 
     // Do not request the inserted row back: anon intentionally has no SELECT
-    // permission on session_photos. The ID is generated client-side instead.
+    // permission on session_photos.
     await supabaseRest("/rest/v1/session_photos", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Prefer: "return=minimal",
-        ...sessionHeader,
       },
       body: JSON.stringify({
         id: photoId,
@@ -57,15 +58,20 @@ export const localSessionService: SessionService = {
   },
 
   async finalizeSession(session: BoothSession) {
-    await supabaseRest(`/rest/v1/sessions?id=eq.${session.id}&status=eq.active`, {
-      method: "PATCH",
+    const response = await supabaseRest("/rest/v1/rpc/finalize_kiosk_session", {
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-session-id": session.id,
-        Prefer: "return=minimal",
+        Prefer: "return=representation",
       },
-      body: JSON.stringify({ status: "awaiting_print" }),
+      body: JSON.stringify({ p_session_id: session.id }),
     });
+
+    const finalized = (await response.json()) as boolean;
+    if (!finalized) {
+      throw new Error("A sessão não pôde ser finalizada. Ela pode já ter sido encerrada.");
+    }
+
     return { ...session, status: "finalized" };
   },
 };
