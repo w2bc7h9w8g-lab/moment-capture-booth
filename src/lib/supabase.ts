@@ -87,3 +87,33 @@ export async function signedPhotoUrl(path: string, token: string, expiresIn = 60
   if (!data.signedURL) throw new Error("Não foi possível gerar o link da foto.");
   return data.signedURL.startsWith("http") ? data.signedURL : `${SUPABASE_URL}/storage/v1${data.signedURL}`;
 }
+
+
+export async function supabaseFunction(
+  name: string,
+  body: unknown,
+  token: string,
+) {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    let message = text || `Supabase Function failed (${response.status})`;
+    try {
+      const parsed = JSON.parse(text) as { error?: string };
+      if (parsed.error) message = parsed.error;
+    } catch {
+      // Keep the raw response.
+    }
+    throw new Error(message);
+  }
+
+  return response.json();
+}
