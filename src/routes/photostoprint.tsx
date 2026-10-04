@@ -209,7 +209,7 @@ function Login({ onReady }: { onReady: () => void }) {
 
 type Filter = "all" | "awaiting_print" | "printing" | "printed" | "completed" | "active";
 
-function App({ token, operator, onLogout }: { token: string; operator: string; onLogout: () => void }) {
+function App({ token, operator, role, onLogout }: { token: string; operator: string; role: string; onLogout: () => void }) {
   const now = useNow();
   const [meta, setMeta] = useState<Record<string, SessionMeta>>({});
   const [phone, setPhone] = useState("");
@@ -857,6 +857,7 @@ function Page() {
     <App
       token={auth.access_token}
       operator={auth.user.email ?? auth.user.id.slice(0, 8)}
+      role={role}
       onLogout={() => {
         void signOut(auth.access_token);
         setAuth(null);
