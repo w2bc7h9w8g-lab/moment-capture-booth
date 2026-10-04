@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
@@ -164,7 +164,7 @@ function StatCard({
   label: string;
   value: string | number;
   detail: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
 }) {
   return (
     <div className="rounded-xl border border-border/80 bg-card/60 p-4">
@@ -276,7 +276,7 @@ function Dashboard({ token, out }: { token: string; out: () => void }) {
   const bestDays = useMemo(() => [...activeDays].sort((a, b) => b.photos - a.photos).slice(0, 3), [activeDays]);
   const lowestDays = useMemo(() => [...activeDays].sort((a, b) => a.photos - b.photos).slice(0, 3), [activeDays]);
 
-  const createStaff = async (event: React.FormEvent) => {
+  const createStaff = async (event: FormEvent) => {
     event.preventDefault();
     if (creatingStaff) return;
     setCreatingStaff(true);
