@@ -71,7 +71,7 @@ export function RemoteCameraViewer({ token }: { token: string }) {
         return;
       }
 
-      if (event === "camera-offer" && payload.sdp) {
+      if (event === "camera-offer" && payload["sdp"]) {
         const peer = peerRef.current;
         if (!peer) return;
         await peer.setRemoteDescription(payload["sdp"] as RTCSessionDescriptionInit);
