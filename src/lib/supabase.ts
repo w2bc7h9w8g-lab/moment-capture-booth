@@ -1,5 +1,5 @@
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://wishwrqlrnbieeepmgxy.supabase.co";
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_yGWVZRX5EfK-r7T_tG0Gxg_533Lpvjc";
+const SUPABASE_URL = import.meta.env["VITE_SUPABASE_URL"] || "https://wishwrqlrnbieeepmgxy.supabase.co";
+const SUPABASE_KEY = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || "sb_publishable_yGWVZRX5EfK-r7T_tG0Gxg_533Lpvjc";
 
 export const supabaseUrl = SUPABASE_URL;
 

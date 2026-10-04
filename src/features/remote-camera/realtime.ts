@@ -28,7 +28,7 @@ export class PublicRealtimeChannel {
   async connect() {
     if (this.ws && this.ws.readyState === WebSocket.OPEN && this.joined) return;
 
-    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_yGWVZRX5EfK-r7T_tG0Gxg_533Lpvjc";
+    const key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] || "sb_publishable_yGWVZRX5EfK-r7T_tG0Gxg_533Lpvjc";
     const wsUrl =
       `wss://${new URL(supabaseUrl).host}/realtime/v1/websocket?apikey=${encodeURIComponent(key)}&vsn=1.0.0`;
 
