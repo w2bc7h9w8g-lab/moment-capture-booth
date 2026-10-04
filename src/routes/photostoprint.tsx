@@ -171,7 +171,7 @@ function Login({ onReady }: { onReady: () => void }) {
             <Printer size={20} />
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Bohemia Photo Booth</p>
-          <h1 className="mt-2 text-2xl font-semibold text-cream">Impressão</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-cream">Preparar fotos</h1>
           <p className="mt-1 text-sm text-muted-foreground">As sessões recentes aparecem automaticamente. Use os filtros para localizar uma sessão.</p>
           <div className="mt-7 space-y-3">
             <input className={inputClass} placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -464,7 +464,7 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
               </div>
               <div>
                 <p className="text-sm font-semibold text-cream">Bohemia Photo Booth</p>
-                <p className="text-[11px] text-muted-foreground">Central de impressão</p>
+                <p className="text-[11px] text-muted-foreground">Fotos para impressão</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -782,8 +782,8 @@ function Empty({ text }: { text: string }) {
 export const Route = createFileRoute("/photostoprint")({
   head: () => ({
     meta: [
-      { title: "Central de impressão — Bohemia Experience" },
-      { name: "description", content: "Fila, histórico e impressão das sessões da cabine." },
+      { title: "Fotos para impressão — Bohemia Experience" },
+      { name: "description", content: "Fila, histórico e download das fotos das sessões da cabine." },
       { name: "robots", content: "noindex" },
     ],
   }),
