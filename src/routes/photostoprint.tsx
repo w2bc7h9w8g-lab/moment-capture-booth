@@ -63,11 +63,11 @@ type SessionMeta = {
 };
 
 const FORMATS: Record<FormatId, { label: string; w: number; h: number }> = {
-  "10x15": { label: "10x15 cm", w: 10, h: 15 },
-  "13x18": { label: "13x18 cm", w: 13, h: 18 },
-  "15x20": { label: "15x20 cm", w: 15, h: 20 },
+  "10x15": { label: "10x15 cm (horizontal)", w: 15, h: 10 },
+  "13x18": { label: "13x18 cm (horizontal)", w: 18, h: 13 },
+  "15x20": { label: "15x20 cm (horizontal)", w: 20, h: 15 },
   square: { label: "Quadrado 15x15 cm", w: 15, h: 15 },
-  custom: { label: "Personalizado", w: 10, h: 15 },
+  custom: { label: "Personalizado", w: 15, h: 10 },
 };
 const DEFAULT_FORMAT: FormatId = "10x15";
 
@@ -221,7 +221,7 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
   const [selected, setSelected] = useState<SessionRow | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [format, setFormat] = useState<FormatId>(DEFAULT_FORMAT);
-  const [custom, setCustom] = useState({ w: 10, h: 15 });
+  const [custom, setCustom] = useState({ w: 15, h: 10 });
   const [quickCount, setQuickCount] = useState(1);
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [preview, setPreview] = useState(false);
