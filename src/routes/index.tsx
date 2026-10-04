@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { RemoteCameraAgent } from "@/features/remote-camera/RemoteCameraAgent";
 import { CabineApp } from "@/modes/cabine/CabineApp";
 
 export const Route = createFileRoute("/")({
@@ -12,5 +13,14 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: CabineApp,
+  component: PublicBooth,
 });
+
+function PublicBooth() {
+  return (
+    <>
+      <RemoteCameraAgent />
+      <CabineApp />
+    </>
+  );
+}
