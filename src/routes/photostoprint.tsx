@@ -273,6 +273,34 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlyToday, token]);
 
+  const deleteSession = async (session: SessionRow) => {
+    if (role !== "admin") return;
+    const ok = window.confirm("Excluir a sessão de " + fullPhone(session.phone) + "?\n\nAs fotos e o pedido serão removidos permanentemente. Essa ação não pode ser desfeita.");
+    if (!ok) return;
+    setError("");
+    setLoading(true);
+    try {
+      const response = await fetch("https://wishwrqlrnbieeepmgxy.supabase.co/functions/v1/delete-print-session", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: session.id }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) throw new Error(data.error || "Não foi possível excluir a sessão.");
+      if (selected?.id === session.id) {
+        setSelected(null);
+        setPhotos([]);
+        setLightbox(null);
+        setPreview(false);
+      }
+      setSessions((current) => current.filter((s) => s.id !== session.id));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Não foi possível excluir a sessão.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filtered = useMemo(() => {
     const digits = phone.replace(/\D/g, "");
     return sessions.filter((s) => {
