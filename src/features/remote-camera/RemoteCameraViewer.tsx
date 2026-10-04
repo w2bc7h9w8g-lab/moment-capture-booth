@@ -60,21 +60,21 @@ export function RemoteCameraViewer({ token }: { token: string }) {
     requestRef.current = newId();
 
     channel.on(async (event, payload) => {
-      if (payload.requestId !== requestRef.current) return;
+      if (payload["requestId"] !== requestRef.current) return;
 
       if (event === "camera-status") {
-        const value = String(payload.status ?? "");
+        const value = String(payload["status"] ?? "");
         if (value === "connected") setStatus("Câmera conectada");
         else if (value === "connecting") setStatus("Conectando vídeo…");
         else if (value === "failed") setStatus("Falha na conexão");
-        else if (value === "error") setStatus(String(payload.message ?? "Falha ao acessar a câmera."));
+        else if (value === "error") setStatus(String(payload["message"] ?? "Falha ao acessar a câmera."));
         return;
       }
 
-      if (event === "camera-offer" && payload.sdp) {
+      if (event === "camera-offer" && payload["sdp"]) {
         const peer = peerRef.current;
         if (!peer) return;
-        await peer.setRemoteDescription(payload.sdp as RTCSessionDescriptionInit);
+        await peer.setRemoteDescription(payload["sdp"] as RTCSessionDescriptionInit);
         for (const candidate of pendingIceRef.current) {
           await peer.addIceCandidate(candidate).catch(() => undefined);
         }
@@ -85,8 +85,8 @@ export function RemoteCameraViewer({ token }: { token: string }) {
         return;
       }
 
-      if (event === "camera-ice" && payload.candidate) {
-        const candidate = payload.candidate as RTCIceCandidateInit;
+      if (event === "camera-ice" && payload["candidate"]) {
+        const candidate = payload["candidate"] as RTCIceCandidateInit;
         if (peerRef.current?.remoteDescription) {
           await peerRef.current.addIceCandidate(candidate).catch(() => undefined);
         } else {
