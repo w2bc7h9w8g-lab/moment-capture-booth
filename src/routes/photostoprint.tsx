@@ -183,7 +183,7 @@ function Login({ onReady }: { onReady: () => void }) {
           </div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Bohemia Photo Booth</p>
           <h1 className="mt-2 text-2xl font-semibold text-cream">Impressão</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Encontre a sessão pelo telefone e selecione as fotos.</p>
+          <p className="mt-1 text-sm text-muted-foreground">As sessões recentes aparecem automaticamente. Use os filtros para localizar uma sessão.</p>
           <div className="mt-7 space-y-3">
             <input className={inputClass} placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} />
             <input
@@ -228,7 +228,7 @@ function App({ token, operator, onLogout }: { token: string; operator: string; o
   const [printing, setPrinting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
-  const [tab, setTab] = useState<"queue" | "history">("queue");
+  const [tab, setTab] = useState<"queue" | "history">("history");
   const [error, setError] = useState("");
 
   useEffect(() => setMeta(loadMeta()), []);
@@ -242,10 +242,8 @@ function App({ token, operator, onLogout }: { token: string; operator: string; o
       const params = new URLSearchParams();
       params.set("select", "id,phone,created_at,status,printed_photo_count,printed_at");
       params.set("order", "created_at.desc");
-      params.set("limit", "100");
-      const digits = phone.replace(/\D/g, "");
+      params.set("limit", "200");
       let qs = params.toString();
-      if (digits) qs += `&phone=like.*${digits}*`;
       if (onlyToday) {
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -266,7 +264,7 @@ function App({ token, operator, onLogout }: { token: string; operator: string; o
     } finally {
       setLoading(false);
     }
-  }, [phone, onlyToday, token]);
+  }, [onlyToday, token]);
 
   useEffect(() => {
     void load();
@@ -275,18 +273,18 @@ function App({ token, operator, onLogout }: { token: string; operator: string; o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlyToday, token]);
 
-  const filtered = useMemo(
-    () =>
-      sessions.filter((s) => {
-        const st = effStatus(s);
-        if (statusFilter !== "all" && st !== statusFilter) return false;
-        const hm = new Date(s.created_at).toTimeString().slice(0, 5);
-        if (fromTime && hm < fromTime) return false;
-        if (toTime && hm > toTime) return false;
-        return true;
-      }),
-    [sessions, statusFilter, fromTime, toTime, effStatus],
-  );
+  const filtered = useMemo(() => {
+    const digits = phone.replace(/\D/g, "");
+    return sessions.filter((s) => {
+      if (digits && !s.phone.replace(/\D/g, "").includes(digits)) return false;
+      const st = effStatus(s);
+      if (statusFilter !== "all" && st !== statusFilter) return false;
+      const hm = new Date(s.created_at).toTimeString().slice(0, 5);
+      if (fromTime && hm < fromTime) return false;
+      if (toTime && hm > toTime) return false;
+      return true;
+    });
+  }, [sessions, phone, statusFilter, fromTime, toTime, effStatus]);
 
   const queue = useMemo(
     () =>
@@ -490,10 +488,10 @@ function App({ token, operator, onLogout }: { token: string; operator: string; o
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                   <input
                     className={`${inputClass} pl-8`}
-                    placeholder="Telefone (parcial)"
+                    placeholder="Filtrar por telefone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && void load()}
+                    
                   />
                 </div>
                 <button type="button" className={`${primaryButton} h-9`} onClick={() => void load()} disabled={loading}>
