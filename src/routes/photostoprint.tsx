@@ -10,6 +10,7 @@ import {
   Minus,
   Plus,
   Printer,
+  Download,
   RefreshCw,
   Repeat,
   Search,
@@ -49,8 +50,6 @@ type Photo = {
   copies: number;
 };
 
-type FormatId = "10x15" | "13x18" | "15x20" | "square" | "custom";
-
 /** Operator-side metadata kept on this device (operator, copies, extra timestamps). */
 type SessionMeta = {
   status?: string;
@@ -59,17 +58,7 @@ type SessionMeta = {
   completedAt?: string;
   printingAt?: string;
   copies?: Record<string, number>;
-  format?: FormatId;
 };
-
-const FORMATS: Record<FormatId, { label: string; w: number; h: number }> = {
-  "10x15": { label: "10x15 cm (horizontal)", w: 15, h: 10 },
-  "13x18": { label: "13x18 cm (horizontal)", w: 18, h: 13 },
-  "15x20": { label: "15x20 cm (horizontal)", w: 20, h: 15 },
-  square: { label: "Quadrado 15x15 cm", w: 15, h: 15 },
-  custom: { label: "Personalizado", w: 15, h: 10 },
-};
-const DEFAULT_FORMAT: FormatId = "10x15";
 
 /* --------------------------------- helpers -------------------------------- */
 
@@ -220,12 +209,10 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [selected, setSelected] = useState<SessionRow | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [format, setFormat] = useState<FormatId>(DEFAULT_FORMAT);
-  const [custom, setCustom] = useState({ w: 15, h: 10 });
   const [quickCount, setQuickCount] = useState(1);
   const [lightbox, setLightbox] = useState<number | null>(null);
-  const [preview, setPreview] = useState(false);
-  const [printing, setPrinting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [tab, setTab] = useState<"queue" | "history">("history");
@@ -291,7 +278,6 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
         setSelected(null);
         setPhotos([]);
         setLightbox(null);
-        setPreview(false);
       }
       setSessions((current) => current.filter((s) => s.id !== session.id));
     } catch (error) {
@@ -327,10 +313,8 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
     setSelected(session);
     setError("");
     setLightbox(null);
-    setPreview(false);
     setLoadingPhotos(true);
     const m = loadMeta()[session.id];
-    setFormat(m?.format ?? DEFAULT_FORMAT);
     try {
       const response = await supabaseRest(
         `/rest/v1/session_photos?select=id,storage_path,photo_number&session_id=eq.${session.id}&order=photo_number.asc`,
@@ -412,36 +396,38 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
     setSessions((c) => c.map((s) => (s.id === next.id ? next : s)));
   };
 
-  /* printing */
-  const changeFormat = (f: FormatId) => {
-    setFormat(f);
-    if (selected) setMeta(saveMetaFor(selected.id, { format: f }));
-  };
-  const dims = format === "custom" ? custom : FORMATS[format];
-
-  const confirmPrint = async () => {
-    if (!selectedCount || printing) return;
-    setPrinting(true);
+  /* downloads */
+  const downloadSelected = async () => {
+    if (!selectedCount || downloading) return;
+    setDownloading(true);
+    setDownloadProgress(0);
     setError("");
     try {
-      if (selected && effStatus(selected) !== "printed" && effStatus(selected) !== "completed") await updateStatus("printing");
-      const images = Array.from(document.querySelectorAll<HTMLImageElement>(".print-only-photo"));
-      await Promise.all(
-        images.map((image) => {
-          if (image.complete && image.naturalWidth > 0) return Promise.resolve();
-          return new Promise<void>((resolve) => {
-            image.addEventListener("load", () => resolve(), { once: true });
-            image.addEventListener("error", () => resolve(), { once: true });
-            window.setTimeout(resolve, 5000);
-          });
-        }),
-      );
-      setPreview(false);
-      window.setTimeout(() => window.print(), 80);
+      const phoneDigits = selected?.phone.replace(/\D/g, "") || "sessao";
+      for (let i = 0; i < selectedPhotos.length; i += 1) {
+        const photo = selectedPhotos[i]!;
+        const response = await fetch(photo.url);
+        if (!response.ok) throw new Error("Não foi possível baixar a foto " + photo.photo_number + ".");
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const extension = blob.type.includes("png") ? "png" : "jpg";
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = "bohemia_" + phoneDigits + "_foto-" + String(photo.photo_number).padStart(2, "0") + "." + extension;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        setDownloadProgress(i + 1);
+        if (i < selectedPhotos.length - 1) await new Promise((resolve) => window.setTimeout(resolve, 250));
+      }
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Não foi possível abrir a impressão.");
+      setError(error instanceof Error ? error.message : "Não foi possível baixar as fotos selecionadas.");
     } finally {
-      window.setTimeout(() => setPrinting(false), 300);
+      window.setTimeout(() => {
+        setDownloading(false);
+        setDownloadProgress(0);
+      }, 500);
     }
   };
 
@@ -461,13 +447,6 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [lightbox, photos]);
-
-  useEffect(() => {
-    if (!preview) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPreview(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [preview]);
 
   const selMeta = selected ? meta[selected.id] : undefined;
   const selStatus = selected ? effStatus(selected) : "";
@@ -664,25 +643,13 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
                     <span className="ml-2 text-xs font-semibold text-cream">{selectedCount} / {photos.length} fotos selecionadas</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <select className={selectClass} value={format} onChange={(e) => changeFormat(e.target.value as FormatId)}>
-                      {(Object.keys(FORMATS) as FormatId[]).map((f) => (
-                        <option key={f} value={f}>{FORMATS[f].label}{f === DEFAULT_FORMAT ? " (padrão)" : ""}</option>
-                      ))}
-                    </select>
-                    {format === "custom" && (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <input type="number" min={3} max={60} value={custom.w} onChange={(e) => setCustom((c) => ({ ...c, w: Number(e.target.value) || c.w }))} className="h-8 w-12 rounded-md border border-border bg-background px-1.5 text-xs text-foreground" />
-                        ×
-                        <input type="number" min={3} max={60} value={custom.h} onChange={(e) => setCustom((c) => ({ ...c, h: Number(e.target.value) || c.h }))} className="h-8 w-12 rounded-md border border-border bg-background px-1.5 text-xs text-foreground" />
-                        cm
-                      </span>
-                    )}
-                    <button type="button" className={primaryButton} onClick={() => setPreview(true)} disabled={!selectedCount}>
-                      <Printer size={13} /> Imprimir {totalPrints} {totalPrints === 1 ? "foto" : "fotos"}
+                    <span className="text-[11px] text-muted-foreground">Cópias para impressão: <span className="font-semibold text-foreground">{totalPrints}</span></span>
+                    <button type="button" className={primaryButton} onClick={() => void downloadSelected()} disabled={!selectedCount || downloading}>
+                      <Download size={13} /> {downloading ? `Baixando ${downloadProgress}/${selectedCount}…` : `Baixar ${selectedCount} ${selectedCount === 1 ? "foto" : "fotos"}`}
                     </button>
                   </div>
                 </div>
-                <p className="px-1 text-[11px] text-muted-foreground">Formato padrão: 10x15 cm · Total de impressões (com cópias): <span className="font-semibold text-foreground">{totalPrints}</span></p>
+                <p className="px-1 text-[11px] text-muted-foreground">As fotos selecionadas serão baixadas em arquivos separados. A impressão e a configuração do papel ficam por conta do operador.</p>
 
                 {/* grid */}
                 <div className="rounded-lg border border-border/80 bg-card/60 p-3">
@@ -752,41 +719,6 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
           </div>
         )}
 
-        {/* print preview */}
-        {preview && selected && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6" onClick={() => setPreview(false)}>
-            <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-lg border border-border bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-cream">Prévia de impressão</h3>
-                  <p className="text-[11px] text-muted-foreground">
-                    {maskPhone(selected.phone)} · {selectedCount} foto(s) · {totalPrints} impressão(ões) · {format === "custom" ? `${custom.w}x${custom.h} cm` : FORMATS[format].label}
-                  </p>
-                </div>
-                <button type="button" className={ghostButton} onClick={() => setPreview(false)} aria-label="Fechar"><X size={14} /></button>
-              </div>
-              <div className="grid flex-1 grid-cols-3 gap-3 overflow-y-auto p-4 sm:grid-cols-4">
-                {selectedPhotos.map((p) => (
-                  <div key={p.id} className="text-center">
-                    <div className="mx-auto overflow-hidden rounded border border-border bg-background shadow" style={{ aspectRatio: `${dims.w} / ${dims.h}` }}>
-                      <img src={p.url} alt={`Foto ${p.photo_number}`} className="h-full w-full object-cover" />
-                    </div>
-                    <p className="mt-1 text-[11px] text-muted-foreground">Foto {p.photo_number} · {p.copies}x</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between border-t border-border px-4 py-3">
-                <span className="text-xs text-muted-foreground">Total: <b className="text-foreground">{totalPrints}</b> impressões</span>
-                <div className="flex gap-2">
-                  <button type="button" className={secondaryButton} onClick={() => setPreview(false)}>Cancelar</button>
-                  <button type="button" className={primaryButton} onClick={() => void confirmPrint()} disabled={printing}>
-                    <Printer size={13} /> {printing ? "Abrindo…" : "Imprimir"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       <PrintView photos={photos} dims={dims} />
@@ -845,61 +777,6 @@ function Empty({ text }: { text: string }) {
   return <div className="px-2 py-10 text-center text-xs text-muted-foreground">{text}</div>;
 }
 
-function PrintView({ photos, dims }: { photos: Photo[]; dims: { w: number; h: number } }) {
-  const pages = photos.filter((p) => p.selected).flatMap((p) => Array.from({ length: p.copies }, (_, i) => ({ p, key: `${p.id}-${i}` })));
-  const pageWmm = dims.w * 10;
-  const pageHmm = dims.h * 10;
-
-  return (
-    <div className="hidden print:block print:bg-white">
-      <style>{`
-        @media print {
-          @page {
-            size: ${pageWmm}mm ${pageHmm}mm;
-            margin: 0;
-          }
-
-          .print-only-page {
-            width: ${pageWmm}mm !important;
-            height: ${pageHmm}mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-            break-after: page;
-            page-break-after: always;
-          }
-
-          .print-only-photo {
-            width: 100% !important;
-            height: 100% !important;
-            display: block !important;
-            object-fit: contain !important;
-          }
-
-          html,
-          body {
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
-          }
-        }
-      `}</style>
-      {pages.map(({ p, key }) => (
-        <div
-          key={key}
-          className="print-only-page flex items-center justify-center overflow-hidden"
-          style={{ width: `${pageWmm}mm`, height: `${pageHmm}mm` }}
-        >
-          <img src={p.url} alt={`Foto ${p.photo_number}`} className="print-only-photo" />
-        </div>
-      ))}
-    </div>
-  );
-}
 /* ---------------------------------- route --------------------------------- */
 
 export const Route = createFileRoute("/photostoprint")({
