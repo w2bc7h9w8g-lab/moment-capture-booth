@@ -624,6 +624,11 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
                       <button type="button" className={ghostButton} onClick={nextInQueue} disabled={!queue.some((s) => s.id !== selected.id)}>
                         Próximo da fila <ChevronRight size={13} />
                       </button>
+                      {role === "admin" && ["active", "awaiting_print", "printing"].includes(selStatus) && (
+                        <button type="button" className={ghostButton} onClick={() => void deleteSession(selected)}>
+                          <X size={13} /> Excluir sessão
+                        </button>
+                      )}
                     </div>
                   </div>
 
