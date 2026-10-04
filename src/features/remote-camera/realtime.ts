@@ -14,7 +14,11 @@ export class PublicRealtimeChannel {
   private joined = false;
   private handlers = new Set<Handler>();
 
-  constructor(topic: string) {\n    this.topic = topic.startsWith("realtime:") ? topic : `realtime:${topic}`;\n  }\n\n  private readonly topic: string;
+  constructor(topic: string) {
+    this.topic = topic.startsWith("realtime:") ? topic : `realtime:${topic}`;
+  }
+
+  private readonly topic: string;
 
   on(handler: Handler) {
     this.handlers.add(handler);
