@@ -52,7 +52,7 @@ function App({token,onLogout}:{token:string;onLogout:()=>void}){
     setPhotos(a=>a.map(x=>({...x,selected:!allSelected})));
   };
 
-  return <div className="min-h-screen p-6 md:p-10 print:hidden">
+  return <><div className="min-h-screen p-6 md:p-10 print:hidden">
     <div className="mx-auto max-w-7xl">
       <div className="flex justify-between"><div><h1 className="font-display text-5xl text-cream">Fotos para imprimir</h1><p className="text-muted-foreground">Pesquise pelo telefone.</p></div><KioskButton variant="ghost" onClick={onLogout}>Sair</KioskButton></div>
       <div className="mt-8 flex gap-3"><input className="flex-1 rounded-xl border bg-card p-4 text-xl" placeholder="(24) 99999-9999" value={phone} onChange={x=>setPhone(x.target.value)} onKeyDown={x=>x.key==="Enter"&&search()}/><KioskButton onClick={search}>Buscar</KioskButton></div>
@@ -75,13 +75,13 @@ function App({token,onLogout}:{token:string;onLogout:()=>void}){
         </div>
       </div>
     </div>
-  </div>
+  </div><PrintView photos={photos}/></>;
 }
 
 function PrintView({photos}:{photos:P[]}){
   const selected=photos.filter(x=>x.selected);
   return <div className="hidden print:block print:bg-white">
-    {selected.map((photo,index)=><div key={photo.id} className="flex min-h-[100vh] items-center justify-center p-0 page-break-after-always">
+    {selected.map((photo,index)=><div key={photo.id} className="flex min-h-[100vh] items-center justify-center p-0 [break-after:page]">
       <img src={photo.url} alt={`Foto ${photo.photo_number}`} className="max-h-[100vh] max-w-[100vw] object-contain" />
       {index===selected.length-1&&<span className="hidden">.</span>}
     </div>)}
@@ -93,5 +93,5 @@ function Page(){
   const[a,setA]=useState(loadAuth());const[r,setR]=useState<string|null>(null);
   useEffect(()=>{if(a)getStaffRole(a.access_token).then(setR).catch(()=>setR(null))},[a]);
   if(!a||!r)return <Login onReady={()=>setA(loadAuth())}/>;
-  return <><App token={a.access_token} onLogout={()=>{signOut(a.access_token);setA(null);setR(null)}}/><PrintView photos={[]}/></>;
+  return <App token={a.access_token} onLogout={()=>{signOut(a.access_token);setA(null);setR(null)}}/>;
 }
