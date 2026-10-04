@@ -847,12 +847,58 @@ function Empty({ text }: { text: string }) {
 
 function PrintView({ photos, dims }: { photos: Photo[]; dims: { w: number; h: number } }) {
   const pages = photos.filter((p) => p.selected).flatMap((p) => Array.from({ length: p.copies }, (_, i) => ({ p, key: `${p.id}-${i}` })));
+  const pageWmm = dims.w * 10;
+  const pageHmm = dims.h * 10;
+  const landscape = dims.w >= dims.h;
+
   return (
     <div className="hidden print:block print:bg-white">
-      <style>{`@media print { @page { size: ${dims.w}cm ${dims.h}cm; margin: 0; } }`}</style>
+      <style>{`
+        @media print {
+          @page {
+            size: ${pageWmm}mm ${pageHmm}mm;
+            margin: 0;
+          }
+
+          html,
+          body {
+            width: ${pageWmm}mm;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
+
+          .print-only-page {
+            width: ${pageWmm}mm !important;
+            height: ${pageHmm}mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            break-after: page;
+            page-break-after: always;
+          }
+
+          .print-only-photo {
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
+            object-fit: contain !important;
+          }
+
+          ${landscape ? "@page { page-orientation: landscape; }" : ""}
+        }
+      `}</style>
       {pages.map(({ p, key }) => (
-        <div key={key} className="flex items-center justify-center overflow-hidden [break-after:page]" style={{ width: `${dims.w}cm`, height: `${dims.h}cm` }}>
-          <img src={p.url} alt={`Foto ${p.photo_number}`} className="print-only-photo h-full w-full object-contain" />
+        <div
+          key={key}
+          className="print-only-page flex items-center justify-center overflow-hidden"
+          style={{ width: `${pageWmm}mm`, height: `${pageHmm}mm` }}
+        >
+          <img src={p.url} alt={`Foto ${p.photo_number}`} className="print-only-photo" />
         </div>
       ))}
     </div>
@@ -898,4 +944,3 @@ function Page() {
       }}
     />
   );
-}
