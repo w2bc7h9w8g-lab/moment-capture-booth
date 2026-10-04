@@ -10,6 +10,9 @@ import {
   RefreshCw,
   ShieldCheck,
   Users,
+  KeyRound,
+  Save,
+  X,
 } from "lucide-react";
 import {
   Bar,
@@ -192,6 +195,13 @@ function Dashboard({ token, out }: { token: string; out: () => void }) {
   const [staffPassword, setStaffPassword] = useState("");
   const [creatingStaff, setCreatingStaff] = useState(false);
   const [staffMessage, setStaffMessage] = useState("");
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [passwordUser, setPasswordUser] = useState<Staff | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const loadAnalytics = async () => {
     setLoading(true);
@@ -275,6 +285,67 @@ function Dashboard({ token, out }: { token: string; out: () => void }) {
 
   const bestDays = useMemo(() => [...activeDays].sort((a, b) => b.photos - a.photos).slice(0, 3), [activeDays]);
   const lowestDays = useMemo(() => [...activeDays].sort((a, b) => a.photos - b.photos).slice(0, 3), [activeDays]);
+
+  const updateRole = async (member: Staff, role: Staff["role"]) => {
+    if (editingRole) return;
+    setEditingRole(member.id);
+    setStaffError("");
+    setStaffMessage("");
+    try {
+      await supabaseFunction("manage-staff", { action: "update_role", user_id: member.id, role }, token);
+      setStaff((current) => current.map((item) => item.id === member.id ? { ...item, role } : item));
+      setStaffMessage(`Permissão de ${member.email} atualizada para ${role === "admin" ? "Admin" : "Caixa"}.`);
+    } catch (error) {
+      setStaffError(error instanceof Error ? error.message : "Não foi possível alterar a permissão.");
+      await loadStaff();
+    } finally {
+      setEditingRole(null);
+    }
+  };
+
+  const openPasswordDialog = (member: Staff) => {
+    setPasswordUser(member);
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordMessage("");
+    setPasswordError("");
+  };
+
+  const closePasswordDialog = () => {
+    if (passwordSaving) return;
+    setPasswordUser(null);
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordMessage("");
+    setPasswordError("");
+  };
+
+  const resetPassword = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!passwordUser || passwordSaving) return;
+    setPasswordError("");
+    setPasswordMessage("");
+    if (newPassword.length < 8) {
+      setPasswordError("A nova senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("As senhas não coincidem.");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      await supabaseFunction("manage-staff", { action: "reset_password", user_id: passwordUser.id, password: newPassword }, token);
+      setPasswordMessage("Senha alterada com sucesso.");
+      setNewPassword("");
+      setConfirmPassword("");
+      window.setTimeout(() => closePasswordDialog(), 900);
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : "Não foi possível alterar a senha.");
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   const createStaff = async (event: FormEvent) => {
     event.preventDefault();
@@ -478,20 +549,35 @@ function Dashboard({ token, out }: { token: string; out: () => void }) {
             </form>
 
             <div className="overflow-hidden rounded-xl border border-border/70">
-              <div className="grid grid-cols-[1fr_auto_auto] gap-4 border-b border-border/70 bg-background/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                <span>Usuário</span><span>Perfil</span><span>Último acesso</span>
+              <div className="grid grid-cols-[minmax(0,1fr)_150px_110px_150px] gap-4 border-b border-border/70 bg-background/40 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span>Usuário</span><span>Permissão</span><span>Último acesso</span><span className="text-right">Ações</span>
               </div>
               {staffLoading ? (
                 <div className="p-5 text-sm text-muted-foreground">Carregando equipe…</div>
               ) : staff.length ? (
                 staff.map((member) => (
-                  <div key={member.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
+                  <div key={member.id} className="grid grid-cols-[minmax(0,1fr)_150px_110px_150px] items-center gap-4 border-b border-border/50 px-4 py-3 last:border-0">
                     <div className="min-w-0">
                       <p className="truncate text-sm text-foreground">{member.email}</p>
-                      <p className="text-[11px] text-muted-foreground">{member.role === "admin" ? "Administrador" : "Impressão"}</p>
+                      <p className="text-[11px] text-muted-foreground">{member.role === "admin" ? "Administrador" : "Caixa / impressão"}</p>
                     </div>
-                    <span className="rounded-md bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">{member.role === "admin" ? "Admin" : "Caixa"}</span>
+                    <select
+                      className="h-8 rounded-md border border-border bg-background px-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+                      value={member.role}
+                      disabled={editingRole === member.id}
+                      onChange={(event) => void updateRole(member, event.target.value as Staff["role"])}
+                      aria-label={"Permissão de " + member.email}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="cashier">Caixa</option>
+                    </select>
                     <span className="text-xs text-muted-foreground">{member.last_sign_in_at ? new Date(member.last_sign_in_at).toLocaleDateString("pt-BR") : "Nunca"}</span>
+                    <div className="flex justify-end">
+                      <button type="button" className={secondaryButton} onClick={() => openPasswordDialog(member)} disabled={passwordSaving} title="Alterar senha">
+                        <KeyRound size={13} />
+                        Senha
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -501,6 +587,30 @@ function Dashboard({ token, out }: { token: string; out: () => void }) {
           </div>
         </section>
       </main>
+      {passwordUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5" onClick={closePasswordDialog}>
+          <form onSubmit={(event) => void resetPassword(event)} onClick={(event) => event.stopPropagation()} className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Segurança</p>
+                <h3 className="mt-1 text-lg font-semibold text-cream">Alterar senha</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{passwordUser.email}</p>
+              </div>
+              <button type="button" className={secondaryButton} onClick={closePasswordDialog} disabled={passwordSaving} aria-label="Fechar"><X size={14} /></button>
+            </div>
+            <div className="mt-5 space-y-3">
+              <input className={inputClass} type="password" autoComplete="new-password" placeholder="Nova senha (mínimo 8 caracteres)" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={8} required autoFocus />
+              <input className={inputClass} type="password" autoComplete="new-password" placeholder="Confirmar nova senha" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} minLength={8} required />
+            </div>
+            {passwordError && <p className="mt-3 text-sm text-destructive">{passwordError}</p>}
+            {passwordMessage && <p className="mt-3 text-sm text-primary">{passwordMessage}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" className={secondaryButton} onClick={closePasswordDialog} disabled={passwordSaving}>Cancelar</button>
+              <button type="submit" className={primaryButton} disabled={passwordSaving}><Save size={13} />{passwordSaving ? "Salvando…" : "Salvar nova senha"}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
