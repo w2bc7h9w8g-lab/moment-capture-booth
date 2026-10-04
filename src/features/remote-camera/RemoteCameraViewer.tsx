@@ -75,6 +75,9 @@ export function RemoteCameraViewer({ token }: { token: string }) {
         const peer = peerRef.current;
         if (!peer) return;
         await peer.setRemoteDescription(payload["sdp"] as RTCSessionDescriptionInit);
+        for (const candidate of pendingIceRef.current) {
+          await peer.addIceCandidate(candidate).catch(() => undefined);
+        }
         pendingIceRef.current = [];
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
@@ -82,8 +85,8 @@ export function RemoteCameraViewer({ token }: { token: string }) {
         return;
       }
 
-      if (event === "camera-ice" && payload.candidate) {
-        const candidate = payload.candidate as RTCIceCandidateInit;
+      if (event === "camera-ice" && payload["candidate"]) {
+        const candidate = payload["candidate"] as RTCIceCandidateInit;
         if (peerRef.current?.remoteDescription) {
           await peerRef.current.addIceCandidate(candidate).catch(() => undefined);
         } else {
