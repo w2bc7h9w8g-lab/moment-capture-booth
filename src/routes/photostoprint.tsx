@@ -849,7 +849,6 @@ function PrintView({ photos, dims }: { photos: Photo[]; dims: { w: number; h: nu
   const pages = photos.filter((p) => p.selected).flatMap((p) => Array.from({ length: p.copies }, (_, i) => ({ p, key: `${p.id}-${i}` })));
   const pageWmm = dims.w * 10;
   const pageHmm = dims.h * 10;
-  const landscape = dims.w >= dims.h;
 
   return (
     <div className="hidden print:block print:bg-white">
@@ -858,18 +857,6 @@ function PrintView({ photos, dims }: { photos: Photo[]; dims: { w: number; h: nu
           @page {
             size: ${pageWmm}mm ${pageHmm}mm;
             margin: 0;
-          }
-
-          html,
-          body {
-            width: ${pageWmm}mm;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-
-          body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
           }
 
           .print-only-page {
@@ -889,7 +876,16 @@ function PrintView({ photos, dims }: { photos: Photo[]; dims: { w: number; h: nu
             object-fit: contain !important;
           }
 
-          ${landscape ? "@page { page-orientation: landscape; }" : ""}
+          html,
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          body {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+          }
         }
       `}</style>
       {pages.map(({ p, key }) => (
@@ -904,7 +900,6 @@ function PrintView({ photos, dims }: { photos: Photo[]; dims: { w: number; h: nu
     </div>
   );
 }
-
 /* ---------------------------------- route --------------------------------- */
 
 export const Route = createFileRoute("/photostoprint")({
