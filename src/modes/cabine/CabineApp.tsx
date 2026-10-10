@@ -16,6 +16,7 @@ export function CabineApp({ service = localSessionService }: { service?: Session
   const [frames, setFrames] = useState<PhotoFrame[]>([]);
   const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
   const [loadingFrames, setLoadingFrames] = useState(false);
+  const [startingSession, setStartingSession] = useState(false);
   const [frameError, setFrameError] = useState("");
   const [startError, setStartError] = useState("");
   const [finishError, setFinishError] = useState("");
@@ -26,6 +27,7 @@ export function CabineApp({ service = localSessionService }: { service?: Session
     setFrames([]);
     setSelectedFrameId(null);
     setLoadingFrames(false);
+    setStartingSession(false);
     setFrameError("");
     setStartError("");
     setFinishError("");
@@ -33,7 +35,6 @@ export function CabineApp({ service = localSessionService }: { service?: Session
   }, []);
 
   const prepareFrames = async () => {
-    setPhone((current) => current);
     setLoadingFrames(true);
     setFrameError("");
     setSelectedFrameId(null);
@@ -69,6 +70,8 @@ export function CabineApp({ service = localSessionService }: { service?: Session
   };
 
   const continueToCamera = async () => {
+    if (startingSession) return;
+    setStartingSession(true);
     setStartError("");
     try {
       const nextSession = await service.createSession(phone);
@@ -76,6 +79,8 @@ export function CabineApp({ service = localSessionService }: { service?: Session
       setStep("camera");
     } catch (error) {
       setStartError(error instanceof Error ? error.message : "Não foi possível iniciar a sessão. Tente novamente.");
+    } finally {
+      setStartingSession(false);
     }
   };
 
@@ -114,6 +119,7 @@ export function CabineApp({ service = localSessionService }: { service?: Session
             frames={frames}
             selectedFrameId={selectedFrameId}
             loading={loadingFrames}
+            continuing={startingSession}
             error={frameError}
             onSelect={setSelectedFrameId}
             onContinue={() => void continueToCamera()}
