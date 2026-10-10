@@ -2,6 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export type CameraError = "insecure" | "unsupported" | "denied" | "notfound" | "busy" | "unknown";
 
+async function loadOverlay(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Não foi possível carregar a moldura selecionada."));
+    image.src = src;
+  });
+}
+
 export function useCamera() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -39,18 +49,31 @@ export function useCamera() {
     }
   }, [stop]);
 
-  const capture = useCallback((): string | null => {
-    const v = videoRef.current;
-    if (!v || !v.videoWidth) return null;
-    const c = document.createElement("canvas");
-    c.width = v.videoWidth;
-    c.height = v.videoHeight;
-    const ctx = c.getContext("2d");
-    if (!ctx) return null;
-    ctx.translate(c.width, 0);
-    ctx.scale(-1, 1); // match mirrored preview
-    ctx.drawImage(v, 0, 0, c.width, c.height);
-    return c.toDataURL("image/jpeg", 0.92);
+  const capture = useCallback(async (frameUrl?: string): Promise<string | null> => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+
+    // Match the mirrored selfie preview, then draw the frame normally so its text remains readable.
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+
+    if (frameUrl) {
+      try {
+        const overlay = await loadOverlay(frameUrl);
+        context.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+      } catch {
+        throw new Error("A moldura não carregou. Tente novamente ou escolha outra moldura.");
+      }
+    }
+
+    return canvas.toDataURL("image/jpeg", 0.92);
   }, []);
 
   useEffect(() => stop, [stop]);
