@@ -5,6 +5,7 @@ type Props = {
   frames: PhotoFrame[];
   selectedFrameId: string | null;
   loading: boolean;
+  continuing: boolean;
   error: string;
   onSelect: (frameId: string | null) => void;
   onContinue: () => void;
@@ -13,7 +14,7 @@ type Props = {
 };
 
 export function FrameSelectionScreen({
-  frames, selectedFrameId, loading, error, onSelect, onContinue, onRetry, onBack,
+  frames, selectedFrameId, loading, continuing, error, onSelect, onContinue, onRetry, onBack,
 }: Props) {
   return (
     <div className="flex w-full max-w-6xl flex-col items-center text-center">
@@ -67,7 +68,7 @@ export function FrameSelectionScreen({
 
       <div className="flex flex-wrap justify-center gap-4">
         <KioskButton variant="ghost" onClick={onBack}>Voltar</KioskButton>
-        <KioskButton size="xl" onClick={onContinue} disabled={loading}>Continuar para a câmera</KioskButton>
+        <KioskButton size="xl" onClick={onContinue} disabled={loading || continuing}>{continuing ? "Iniciando sessão…" : "Continuar para a câmera"}</KioskButton>
       </div>
     </div>
   );
