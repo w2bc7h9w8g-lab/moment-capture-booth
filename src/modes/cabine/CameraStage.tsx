@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Camera, RotateCcw, X, Check } from "lucide-react";
 import { KioskButton } from "@/components/kiosk/KioskButton";
 import { useCamera } from "@/features/camera/use-camera";
+import type { PhotoFrame } from "@/features/photo-frames";
 import { CameraErrorPanel } from "./screens";
 
 interface Props {
   photoNumber: number;
   maxPhotos: number;
+  frame: PhotoFrame | null;
   onUse: (dataUrl: string) => Promise<void>;
   onCancel: () => void;
 }
@@ -14,7 +16,7 @@ interface Props {
 const COUNTDOWN_START = 3;
 
 /** Live preview + capture (with post-click countdown) + review (retake / use). */
-export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) {
+export function CameraStage({ photoNumber, maxPhotos, frame, onUse, onCancel }: Props) {
   const { videoRef, ready, error, start, stop, capture } = useCamera();
   const [shot, setShot] = useState<string | null>(null);
   const [flash, setFlash] = useState(0);
@@ -24,12 +26,18 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
 
   useEffect(() => { void start(); return stop; }, [start, stop]);
 
-  const take = () => {
-    const img = capture();
-    if (img) {
-      setSaveError("");
-      setShot(img);
-      setFlash((f) => f + 1);
+  const take = async () => {
+    try {
+      const img = await capture(frame?.imageUrl);
+      if (img) {
+        setSaveError("");
+        setShot(img);
+        setFlash((f) => f + 1);
+      } else {
+        setSaveError("A câmera ainda não está pronta. Tente novamente.");
+      }
+    } catch (captureError) {
+      setSaveError(captureError instanceof Error ? captureError.message : "Não foi possível capturar a foto.");
     }
   };
 
@@ -41,7 +49,7 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
   useEffect(() => {
     if (count === null) return;
     if (count === 0) {
-      take();
+      void take();
       setCount(null);
       return;
     }
@@ -70,6 +78,7 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
   return (
     <div className="flex w-full max-w-6xl flex-col items-center">
       <p className="mb-3 text-lg tracking-[0.3em] text-primary uppercase">Foto {photoNumber} de {maxPhotos}</p>
+      {frame && <p className="mb-2 text-sm text-muted-foreground">Moldura: <span className="font-semibold text-cream">{frame.name}</span></p>}
       <div className="relative aspect-video w-full max-h-[65vh] overflow-hidden rounded-3xl border-4 border-primary/60 bg-card shadow-gold">
         <video
           ref={videoRef}
@@ -77,7 +86,11 @@ export function CameraStage({ photoNumber, maxPhotos, onUse, onCancel }: Props) 
           muted
           className={`h-full w-full -scale-x-100 object-cover ${shot ? "invisible" : ""}`}
         />
-        {shot && <img src={shot} alt="Foto capturada" className="absolute inset-0 h-full w-full object-cover" />}
+        {shot ? (
+          <img src={shot} alt="Foto capturada" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          frame && <img src={frame.imageUrl} alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-fill" />
+        )}
         {!ready && !shot && (
           <div className="absolute inset-0 flex items-center justify-center text-xl text-muted-foreground">Abrindo câmera…</div>
         )}
