@@ -34,6 +34,7 @@ import {
   supabaseRest,
 } from "@/lib/supabase";
 import { RemoteCameraViewer } from "@/features/remote-camera/RemoteCameraViewer";
+import { FrameManager } from "@/features/frames/FrameManager";
 
 type SessionRow = {
   id: string;
@@ -516,6 +517,8 @@ function Dashboard({ token, out }: { token: string; out: () => void }) {
             </div>
           </div>
         </section>
+
+        <FrameManager token={token} />
 
         <RemoteCameraViewer token={token} />
 
