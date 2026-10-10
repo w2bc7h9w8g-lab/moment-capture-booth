@@ -61,3 +61,6 @@ using (
   and name like 'frames/%'
   and exists (select 1 from public.staff_roles r where r.user_id = (select auth.uid()) and r.role = 'admin')
 );
+
+grant select on table public.photo_frames to anon, authenticated;
+grant insert, update, delete on table public.photo_frames to authenticated;
