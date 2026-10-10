@@ -720,8 +720,6 @@ function App({ token, operator, role, onLogout }: { token: string; operator: str
         )}
 
       </div>
-
-      <PrintView photos={photos} dims={dims} />
     </>
   );
 }
