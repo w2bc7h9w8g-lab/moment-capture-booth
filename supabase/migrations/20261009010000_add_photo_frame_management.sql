@@ -10,9 +10,11 @@ create table if not exists public.photo_frames (
 
 alter table public.photo_frames enable row level security;
 
+create index if not exists photo_frames_created_by_idx on public.photo_frames(created_by);
+
 drop policy if exists "Active photo frames are visible to kiosk" on public.photo_frames;
 create policy "Active photo frames are visible to kiosk"
-on public.photo_frames for select to anon, authenticated
+on public.photo_frames for select to anon
 using (is_active = true);
 
 drop policy if exists "Admins can manage photo frames" on public.photo_frames;
